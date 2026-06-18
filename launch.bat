@@ -1,4 +1,5 @@
 @echo off
+setlocal EnableDelayedExpansion
 title Aegis Simulation Launcher
 cls
 
@@ -7,84 +8,120 @@ echo               Aegis Simulation - Windows Launcher
 echo =======================================================================
 echo.
 
-:: Check for Node.js
+:: Get the directory where this script lives (absolute path)
+set "ROOT=%~dp0"
+:: Remove trailing backslash
+if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
+
+echo Root directory: %ROOT%
+echo.
+
+:: ── 1. Check for Node.js ──────────────────────────────────────────────────
+echo [1/4] Checking Node.js...
 where node >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [ERROR] Node.js was not found in your PATH.
-    echo Please install Node.js v18 or higher from https://nodejs.org/
-    pause
-    exit /b 1
+if errorlevel 1 (
+    echo [ERROR] Node.js not found in PATH.
+    echo         Install from https://nodejs.org/
+    goto :fatal
 )
+for /f "tokens=*" %%v in ('node --version') do echo        Found Node.js %%v
+echo.
 
-:: Check for Python
+:: ── 2. Check for Python ──────────────────────────────────────────────────
+echo [2/4] Checking Python...
 where python >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [ERROR] Python was not found in your PATH.
-    echo Please install Python 3.9 or higher from https://www.python.org/
-    pause
-    exit /b 1
+if errorlevel 1 (
+    echo [ERROR] Python not found in PATH.
+    echo         Install from https://www.python.org/
+    goto :fatal
 )
+for /f "tokens=*" %%v in ('python --version') do echo        Found %%v
+echo.
 
-echo [1/4] Checking and installing Frontend dependencies...
-if not exist "node_modules\" (
-    echo node_modules folder not found. Installing dependencies via npm...
+:: ── 3. Frontend dependencies ──────────────────────────────────────────────
+echo [3/4] Frontend dependencies...
+if not exist "%ROOT%\node_modules\" (
+    echo        Installing npm packages ^(first run^)...
+    cd /d "%ROOT%"
     call npm install
+    if errorlevel 1 (
+        echo [ERROR] npm install failed. Check output above.
+        goto :fatal
+    )
 ) else (
-    echo Frontend dependencies are already installed.
+    echo        node_modules already present. Skipping.
 )
 echo.
 
-echo [2/4] Setting up Backend Python Virtual Environment...
-cd api
-if not exist ".venv\" (
-    echo Creating virtual environment in api\.venv...
-    python -m venv .venv
+:: ── 4. Backend venv + dependencies ───────────────────────────────────────
+echo [4/4] Backend setup...
+set "API_DIR=%ROOT%\api"
+set "VENV=%API_DIR%\.venv"
+set "PYTHON=%VENV%\Scripts\python.exe"
+set "PIP=%VENV%\Scripts\pip.exe"
+set "UVICORN=%VENV%\Scripts\uvicorn.exe"
+
+if not exist "%VENV%\" (
+    echo        Creating virtual environment...
+    python -m venv "%VENV%"
+    if errorlevel 1 (
+        echo [ERROR] Failed to create virtual environment.
+        goto :fatal
+    )
 )
 
-echo Activating virtual environment to verify dependencies...
-call .venv\Scripts\activate.bat
-
-python -c "import uvicorn" >nul 2>nul
-if %errorlevel% neq 0 (
-    echo Dependencies not found or incomplete. Installing backend dependencies...
-    python -m pip install --upgrade pip
-    pip install -r requirements.txt
+:: Check if core packages are installed
+"%PYTHON%" -c "import uvicorn" >nul 2>nul
+if errorlevel 1 (
+    echo        Installing backend packages ^(first run - may take a minute^)...
+    "%PIP%" install --upgrade pip --quiet
+    "%PIP%" install -r "%API_DIR%\requirements.txt"
+    if errorlevel 1 (
+        echo [ERROR] pip install failed. Check output above.
+        goto :fatal
+    )
 ) else (
-    echo Backend dependencies are already installed.
+    echo        Backend packages already installed.
 )
-cd ..
+
+if not exist "%UVICORN%" (
+    echo [ERROR] uvicorn.exe not found at: %UVICORN%
+    echo         Something went wrong during installation.
+    goto :fatal
+)
 echo.
 
-echo [3/4] Launching Backend API Server on Port 8000...
-start "Aegis Sim - Backend API" cmd /k "cd api && call .venv\Scripts\activate.bat && uvicorn main:app --reload --port 8000"
+:: ── Launch servers ────────────────────────────────────────────────────────
+echo Launching Backend API Server on port 8000...
+start "Aegis - Backend" cmd /k ""%UVICORN%" main:app --reload --port 8000 --app-dir "%API_DIR%""
 
-echo [4/4] Launching Frontend Development Server on Port 3000...
-start "Aegis Sim - Frontend UI" cmd /k "npm run dev"
+echo Launching Frontend on port 3000...
+start "Aegis - Frontend" cmd /k "cd /d "%ROOT%" && npm run dev"
 
 echo.
 echo =======================================================================
-echo  Aegis Simulation is starting up!
-echo =======================================================================
+echo  Both servers are starting up!
 echo.
-echo  - Frontend UI URL:  http://localhost:3000
-echo  - Backend API URL:  http://localhost:8000
-echo  - Interactive Docs: http://localhost:8000/docs
+echo   Frontend:  http://localhost:3000
+echo   Backend:   http://localhost:8000
+echo   API Docs:  http://localhost:8000/docs
 echo.
-echo  Keep this window open. Press any key to stop the servers and exit.
-echo  This will stop processes on ports 3000 and 8000.
+echo  Press any key here to STOP both servers and exit.
 echo =======================================================================
 echo.
 pause
 
-echo.
+:: ── Cleanup ───────────────────────────────────────────────────────────────
 echo Stopping servers...
-:: Kill processes on port 3000
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3000 ^| findstr LISTENING') do (
-    taskkill /f /pid %%a >nul 2>&1
-)
-:: Kill processes on port 8000
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do (
-    taskkill /f /pid %%a >nul 2>&1
-)
-echo Servers stopped. Goodbye!
+for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| findstr ":3000 " ^| findstr "LISTENING"') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| findstr ":8000 " ^| findstr "LISTENING"') do taskkill /f /pid %%a >nul 2>&1
+echo Done. Goodbye!
+goto :eof
+
+:fatal
+echo.
+echo -----------------------------------------------------------------------
+echo  Launch failed. Read the error above, then press any key to exit.
+echo -----------------------------------------------------------------------
 pause
+exit /b 1
