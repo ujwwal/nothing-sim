@@ -51,33 +51,52 @@ export default function DataHealthPage() {
 }
 
 function SourcesTab() {
-  const datasets = [
-    { name: "HUD PIT Count", status: "Healthy", updated: "2 Months Ago" },
-    { name: "System Performance Measures", status: "Healthy", updated: "5 Months Ago" },
-    { name: "ED Visits Age Group", status: "Warning", updated: "13 Months Ago", issue: "Data approaching 18-month staleness threshold." },
-    { name: "Vera Incarceration Trends", status: "Healthy", updated: "1 Month Ago" }
-  ];
+  const [datasets, setDatasets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    fetch('http://localhost:8000/api/data-health')
+      .then(res => res.json())
+      .then(data => {
+        const formattedDatasets = (data.registry || []).map((item: any) => ({
+          name: item.name,
+          path: item.path,
+          status: "Healthy",
+        }));
+        setDatasets(formattedDatasets);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch datasets", err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return <div className="text-slate-400 p-4">Scanning datasets directory...</div>;
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
       {datasets.map((ds, idx) => (
         <div key={idx} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-          <div className="flex items-center gap-4">
-            <FileSpreadsheet className="text-blue-400" />
-            <div>
-               <h4 className="font-medium text-white">{ds.name}</h4>
-               <p className="text-sm text-slate-400">Last updated: {ds.updated}</p>
+          <div className="flex items-center gap-4 overflow-hidden">
+            <FileSpreadsheet className="text-blue-400 shrink-0" />
+            <div className="overflow-hidden">
+               <h4 className="font-medium text-white truncate" title={ds.name}>{ds.name}</h4>
+               <p className="text-sm text-slate-400 truncate" title={ds.path}>{ds.path}</p>
             </div>
           </div>
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-end shrink-0 ml-4">
              <span className={`flex items-center gap-1 text-sm font-medium ${ds.status === 'Healthy' ? 'text-emerald-400' : 'text-amber-400'}`}>
                {ds.status === 'Healthy' ? <CheckCircle size={16}/> : <AlertTriangle size={16}/>}
                {ds.status}
              </span>
-             {ds.issue && <span className="text-xs text-slate-500 mt-1">{ds.issue}</span>}
+             <span className="text-xs text-slate-500 mt-1">Discovered by Pipeline</span>
           </div>
         </div>
       ))}
+      {datasets.length === 0 && <div className="text-slate-400 text-center">No datasets found.</div>}
     </div>
   );
 }

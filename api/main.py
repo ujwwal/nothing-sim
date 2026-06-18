@@ -39,19 +39,16 @@ class SimulationRequest(BaseModel):
 
 @app.post("/api/simulation/run")
 def run_simulation(req: SimulationRequest):
-    # Placeholder for Markov Model + Monte Carlo
-    # Returns median, 80% CI, 95% CI
-    return {
-        "scenario": req.scenario,
-        "delay_years": req.delay_years,
-        "np_cod": 12500000.0, # Net Present Cost of Delay
-        "projections": [
-            {"year": 2024, "cost": 5000000, "population": 850},
-            {"year": 2025, "cost": 5250000, "population": 880},
-            {"year": 2026, "cost": 5600000, "population": 910},
-        ],
-        "confidence_interval": {
-            "lower_80": 11000000.0,
-            "upper_80": 14000000.0
-        }
-    }
+    from api.simulation import MarkovSimulation
+    
+    # Initialize the model with a standard 10-year horizon
+    model = MarkovSimulation(n_simulations=1000, horizon_years=10)
+    
+    # Run the scenario using the delay_years from the request
+    # Assuming a baseline population of 1000 for demonstration
+    results = model.run_scenario(initial_population=1000, delay_years=req.delay_years)
+    
+    # Ensure scenario name matches the request
+    results["scenario"] = req.scenario
+    
+    return results
