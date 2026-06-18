@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSimulationStore } from '@/lib/store';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Play } from 'lucide-react';
+import { Play, Activity } from 'lucide-react';
 
 export default function SimulationPage() {
   const { scenario, delayYears, setScenario, setDelayYears, results } = useSimulationStore();
