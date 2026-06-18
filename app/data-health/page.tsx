@@ -55,9 +55,14 @@ function SourcesTab() {
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
-    fetch('http://localhost:8000/api/data-health')
+    fetch('/api/data-health')
       .then(res => res.json())
       .then(data => {
+        if (data.status === 'offline') {
+          setDatasets([{ name: 'Backend Offline', path: 'Start the backend via launch.bat', status: 'Warning' }]);
+          setLoading(false);
+          return;
+        }
         const formattedDatasets = (data.registry || []).map((item: any) => ({
           name: item.name,
           path: item.path,
@@ -68,6 +73,7 @@ function SourcesTab() {
       })
       .catch(err => {
         console.error("Failed to fetch datasets", err);
+        setDatasets([{ name: 'Error', path: err.message, status: 'Warning' }]);
         setLoading(false);
       });
   }, []);

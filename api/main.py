@@ -3,6 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
 import json
+import sys
+import os
+
+# Ensure the api directory is in path for relative imports when running via uvicorn from inside api/
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from data_pipeline import MockDataPipeline
+from simulation import MarkovSimulation
 
 app = FastAPI(title="Aegis-Sim API", description="Simulation & Data API for Aegis-Sim")
 
@@ -20,10 +28,9 @@ def read_root():
 
 @app.get("/api/data-health")
 def get_data_health():
-    from api.data_pipeline import MockDataPipeline
     pipeline = MockDataPipeline()
     info = pipeline.inspect_directory()
-    
+
     return {
         "status": info.get("status", "operational"),
         "datasets_monitored": info.get("discovered_count", 0),
@@ -39,16 +46,21 @@ class SimulationRequest(BaseModel):
 
 @app.post("/api/simulation/run")
 def run_simulation(req: SimulationRequest):
-    from api.simulation import MarkovSimulation
-    
-    # Initialize the model with a standard 10-year horizon
+    """
+    Run the Discrete-Time Markov State Transition Model with Monte Carlo simulation.
+    Returns 10-year projections with cost and population estimates.
+    """
     model = MarkovSimulation(n_simulations=1000, horizon_years=10)
-    
-    # Run the scenario using the delay_years from the request
-    # Assuming a baseline population of 1000 for demonstration
-    results = model.run_scenario(initial_population=1000, delay_years=req.delay_years)
-    
-    # Ensure scenario name matches the request
+
+    # For 'do_nothing' scenario, use maximum delay (10 years)
+    delay = 0
+    if req.scenario == 'delay':
+        delay = req.delay_years
+    elif req.scenario == 'do_nothing':
+        delay = 10
+
+    results = model.run_scenario(initial_population=1000, delay_years=delay)
     results["scenario"] = req.scenario
-    
+    results["delay_years"] = req.delay_years
+    results["invisible_population_estimate"] = req.invisible_population_estimate
     return results
