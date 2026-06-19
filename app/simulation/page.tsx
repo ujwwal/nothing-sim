@@ -138,7 +138,7 @@ One or two sentences — the single most important takeaway a policymaker should
 
 Important: Be factual, grounded in the numbers above. Do not make up statistics not provided. Do not recommend specific legislation. Keep the total response under 400 words.`;
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
 
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -347,6 +347,14 @@ export default function SimulationPage() {
                 </button>
               ))}
             </div>
+
+            {/* Layman's explanation card */}
+            <div className="mt-3 p-3 bg-indigo-950/20 border border-indigo-900/40 rounded-xl flex gap-2.5 items-start">
+              <Info size={15} className="text-indigo-400 mt-0.5 shrink-0" />
+              <div className="text-[11px] leading-relaxed text-slate-400">
+                <strong className="text-slate-200">Layman's Terms:</strong> Official surveys usually miss many homeless people who sleep in cars, double up, or hide. Since the official count is too low, we use these multipliers to estimate the real, hidden size: <span className="text-slate-300 font-semibold">Low (0.8x)</span> assumes a conservative estimate, <span className="text-slate-300 font-semibold">Medium (1x)</span> uses only official counts, and <span className="text-slate-300 font-semibold">High (1.35x)</span> adds 35% to represent the estimated true population.
+              </div>
+            </div>
           </div>
 
           <button onClick={runSimulation} disabled={isRunning}
@@ -495,7 +503,7 @@ export default function SimulationPage() {
                   )}
                   {geminiText && !geminiLoading && (
                     <span className="ml-auto text-[10px] text-indigo-300 bg-indigo-900/30 border border-indigo-800/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                      <Sparkles size={9} /> AI-generated · Gemini 1.5 Flash
+                      <Sparkles size={9} /> AI-generated · Gemini 3.1 Flash-Lite
                     </span>
                   )}
                   {!geminiText && !geminiLoading && (

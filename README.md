@@ -80,7 +80,7 @@ The platform is a full-stack Next.js + FastAPI web application with a dark glass
                       │
 ┌─────────────────────▼───────────────────────────────────────┐
 │               AI Summary Layer (Gemini API)                 │
-│  Simulation results → Gemini 1.5 Flash → Plain-language     │
+│  Simulation results → Gemini 3.1 Flash-Lite → Plain-lang    │
 │  policy brief with examples, risks, and actionable steps    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -176,7 +176,7 @@ This is the additional taxpayer burden attributable **specifically to the delay*
 
 | Service | Model | Purpose |
 |---------|-------|---------|
-| Google Gemini API | gemini-1.5-flash | Post-simulation AI policy brief |
+| Google Gemini API | gemini-3.1-flash-lite | Post-simulation AI policy brief |
 
 ---
 
