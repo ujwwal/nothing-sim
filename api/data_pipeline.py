@@ -15,7 +15,7 @@ class MockDataPipeline:
         """
         Recursively scans the /datasets directory.
         """
-        supported_exts = ['.csv', '.xlsx', '.xls', '.xlsb', '.json']
+        supported_exts = ['.csv', '.xlsx', '.xls', '.xlsb', '.json', '.pdf', '.htm', '.txt']
         discovered = []
         
         if not self.data_dir.exists():
