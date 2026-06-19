@@ -12,3 +12,11 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Environments
+.env
+.env.local
+.env.*
+.venv/
+api/.venv/
+

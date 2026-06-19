@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import {
   Play, Activity, AlertTriangle, CheckCircle, TrendingUp,
-  Brain, Database, ChevronDown, ChevronUp, Info, Layers, GitBranch, BarChart2
+  Brain, Database, ChevronDown, ChevronUp, Info, Layers, GitBranch, BarChart2, Sparkles, Loader2
 } from 'lucide-react';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -88,6 +88,110 @@ function generateBrief(
   };
 }
 
+// ── Gemini API helper ────────────────────────────────────────────────────────
+async function callGeminiAPI(
+  scenario: string, delayYears: number, invisiblePop: string,
+  npCodLow: number, npCodHigh: number,
+  projections: any[]
+): Promise<string | null> {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const finalPop   = projections[projections.length - 1]?.population ?? 0;
+  const initPop    = projections[0]?.population ?? 0;
+  const growthPct  = initPop > 0 ? (((finalPop - initPop) / initPop) * 100).toFixed(1) : '0';
+  const totalLowM  = (projections.reduce((s: number, p: any) => s + (p.cost_low  ?? p.cost), 0) / 1e6).toFixed(1);
+  const totalHighM = (projections.reduce((s: number, p: any) => s + (p.cost_high ?? p.cost), 0) / 1e6).toFixed(1);
+  const npCodLowM  = (npCodLow  / 1e6).toFixed(1);
+  const npCodHighM = (npCodHigh / 1e6).toFixed(1);
+
+  const scenarioLabel =
+    scenario === 'act_now'    ? 'immediate Permanent Supportive Housing (PSH) deployment (Act Now)' :
+    scenario === 'do_nothing' ? 'no intervention for 10 years (Do Nothing)' :
+    `a ${delayYears}-year delay before deploying PSH`;
+
+  const prompt = `You are a senior policy analyst writing a plain-language briefing note for a city council member or county supervisor who is NOT a data scientist. They need to understand the fiscal and human consequences of homelessness intervention choices.
+
+Here are the results from an Aegis-Sim Markov simulation:
+- Scenario: ${scenarioLabel}
+- Invisible population estimate: ${invisiblePop} (accounts for PIT count undercounting)
+- Starting chronic homeless population: ${initPop.toLocaleString()}
+- Projected population at year 10: ${finalPop.toLocaleString()} (${Number(growthPct) > 0 ? '+' : ''}${growthPct}% change)
+- Projected 10-year cumulative system cost range: $${totalLowM}M – $${totalHighM}M
+- Net Present Cost of Delay (NP-CoD): $${npCodLowM}M – $${npCodHighM}M (the extra cost taxpayers pay specifically because of the delay)
+- Model: 6-state Discrete-Time Markov Chain, 1,000 Monte Carlo runs, 10-year horizon
+- Cost states: Stable Housing ($12K/yr), Emergency Shelter ($25K/yr), Street Homelessness ($45K/yr), Jail/Justice ($60K/yr), Acute Healthcare ($85K/yr), Deceased (absorbing)
+
+Write a structured policy brief with these exact sections. Use clear, jargon-free language with concrete dollar amounts and population figures from the data above:
+
+## What the Numbers Mean
+In 2-3 sentences, explain what these results tell a policymaker — what the cost range means, why there's a range, and what the key driver is.
+
+## Real-World Examples
+Give 2 concrete, relatable examples that translate these abstract numbers into terms policymakers understand. For instance, compare the NP-CoD to the cost of a specific public project (school, bridge, park), or explain how many people the money could house.
+
+## The Bottom Line
+One or two sentences — the single most important takeaway a policymaker should remember from these results.
+
+## Recommended Next Steps
+3 short bullet points — specific, actionable steps this policymaker should consider given these results. Ground them in the scenario data.
+
+Important: Be factual, grounded in the numbers above. Do not make up statistics not provided. Do not recommend specific legislation. Keep the total response under 400 words.`;
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.4, maxOutputTokens: 700 },
+  };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Markdown-to-JSX renderer (minimal, handles ## headers and ** bold) ────────
+function RenderMarkdown({ text }: { text: string }) {
+  const lines = text.split('\n');
+  return (
+    <div className="space-y-2 text-sm">
+      {lines.map((line, i) => {
+        if (line.startsWith('## ')) {
+          return (
+            <p key={i} className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mt-4 mb-1 first:mt-0">
+              {line.slice(3)}
+            </p>
+          );
+        }
+        if (line.startsWith('- ') || line.startsWith('• ')) {
+          const content = line.slice(2);
+          return (
+            <div key={i} className="flex gap-2 text-slate-300 leading-relaxed">
+              <span className="text-indigo-400 mt-0.5 shrink-0">→</span>
+              <span dangerouslySetInnerHTML={{ __html: content.replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>') }} />
+            </div>
+          );
+        }
+        if (line.trim() === '') return <div key={i} className="h-1" />;
+        return (
+          <p key={i} className="text-slate-300 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>') }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export default function SimulationPage() {
   const { scenario, delayYears, setScenario, setDelayYears, results, setResults } = useSimulationStore();
@@ -95,14 +199,20 @@ export default function SimulationPage() {
   const [error, setError]               = useState<string | null>(null);
   const [invisiblePop, setInvisiblePop] = useState<'low' | 'medium' | 'high'>('medium');
   const [brief, setBrief]               = useState<any | null>(null);
+  const [geminiText, setGeminiText]     = useState<string | null>(null);
+  const [geminiLoading, setGeminiLoading] = useState(false);
+  const [geminiError, setGeminiError]   = useState<string | null>(null);
   const [showModel, setShowModel]       = useState(false);
   const [showPreproc, setShowPreproc]   = useState(false);
   const [showAssumptions, setShowAssumptions] = useState(false);
+  const hasGeminiKey = !!process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
   const runSimulation = async () => {
     setIsRunning(true);
     setError(null);
     setBrief(null);
+    setGeminiText(null);
+    setGeminiError(null);
     try {
       const delayYearsToSend = scenario === 'act_now' ? 0 : scenario === 'do_nothing' ? 10 : delayYears;
       const res = await fetch('/api/simulation/run', {
@@ -125,11 +235,32 @@ export default function SimulationPage() {
       const adjustedResults = { ...data, projections: adjusted, np_cod: data.np_cod * m.mid };
       setResults(adjustedResults);
 
-      setBrief(generateBrief(
+      const templateBrief = generateBrief(
         scenario, delayYears,
         data.np_cod * m.low, data.np_cod * m.high,
         adjusted, invisiblePop
-      ));
+      );
+      setBrief(templateBrief);
+
+      // Fire Gemini in parallel — non-blocking
+      if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+        setGeminiLoading(true);
+        callGeminiAPI(
+          scenario, delayYears, invisiblePop,
+          data.np_cod * m.low, data.np_cod * m.high,
+          adjusted
+        ).then(text => {
+          if (text) {
+            setGeminiText(text);
+          } else {
+            setGeminiError('Gemini did not return a response. Showing template brief.');
+          }
+        }).catch(() => {
+          setGeminiError('Gemini request failed. Showing template brief.');
+        }).finally(() => {
+          setGeminiLoading(false);
+        });
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -340,47 +471,108 @@ export default function SimulationPage() {
 
             {/* ── AI Decision Brief ───────────────────────────────────────── */}
             {brief && (
-              <div className="glass-card rounded-2xl p-5 border border-indigo-900/30">
-                <div className="flex items-center gap-2 mb-4">
-                  <Brain size={15} className="text-indigo-400" />
-                  <h3 className="text-sm font-medium text-slate-300">AI Decision Brief</h3>
-                  <span className="ml-auto text-[10px] text-slate-600 bg-slate-800 px-2 py-0.5 rounded-full">Template · no AI key required</span>
+              <motion.div
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="glass-card rounded-2xl overflow-hidden border border-indigo-900/30"
+              >
+                {/* Header */}
+                <div className="flex items-center gap-2.5 px-5 pt-5 pb-4 border-b border-slate-800/60">
+                  {geminiLoading ? (
+                    <Loader2 size={15} className="text-indigo-400 animate-spin" />
+                  ) : geminiText ? (
+                    <Sparkles size={15} className="text-indigo-400" />
+                  ) : (
+                    <Brain size={15} className="text-indigo-400" />
+                  )}
+                  <h3 className="text-sm font-medium text-slate-300">Policy Brief</h3>
+
+                  {/* Status badge */}
+                  {geminiLoading && (
+                    <span className="ml-auto text-[10px] text-indigo-400 bg-indigo-900/30 border border-indigo-800/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <Loader2 size={9} className="animate-spin" /> Gemini is writing…
+                    </span>
+                  )}
+                  {geminiText && !geminiLoading && (
+                    <span className="ml-auto text-[10px] text-indigo-300 bg-indigo-900/30 border border-indigo-800/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <Sparkles size={9} /> AI-generated · Gemini 1.5 Flash
+                    </span>
+                  )}
+                  {!geminiText && !geminiLoading && (
+                    <span className="ml-auto text-[10px] text-slate-600 bg-slate-800/60 border border-slate-700/40 px-2.5 py-0.5 rounded-full">
+                      {hasGeminiKey ? 'Template fallback' : 'Template · set NEXT_PUBLIC_GEMINI_API_KEY to enable AI'}
+                    </span>
+                  )}
                 </div>
-                <div className="space-y-4 text-sm">
-                  <div>
-                    <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">Executive Summary</p>
-                    <p className="text-slate-300 leading-relaxed">{brief.executive_summary}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1">Fiscal Impact</p>
-                    <p className="text-slate-300 leading-relaxed">{brief.fiscal_impact}</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2">Major Risks</p>
-                      <ul className="space-y-1">
-                        {brief.major_risks.map((r: string, i: number) => (
-                          <li key={i} className="text-slate-400 text-xs flex gap-2">
-                            <AlertTriangle size={11} className="text-amber-500 shrink-0 mt-0.5" />
-                            {r}
-                          </li>
-                        ))}
-                      </ul>
+
+                {/* Gemini content (shown when available) */}
+                <AnimatePresence>
+                  {geminiText && (
+                    <motion.div
+                      key="gemini"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="px-5 pt-4 pb-5"
+                    >
+                      <RenderMarkdown text={geminiText} />
+                      <p className="mt-4 pt-3 border-t border-slate-800/60 text-[10px] text-slate-600">
+                        ⚠ AI-generated summary based solely on this model's outputs. Not a substitute for professional policy analysis. All numbers are from the Aegis-Sim model.
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Template brief (shown while loading or if Gemini unavailable) */}
+                {!geminiText && (
+                  <div className="px-5 pt-4 pb-5">
+                    {geminiLoading && (
+                      <div className="mb-4 flex items-center gap-2 text-xs text-indigo-400/70 bg-indigo-900/10 border border-indigo-900/30 rounded-xl px-3 py-2">
+                        <Loader2 size={11} className="animate-spin shrink-0" />
+                        Generating AI summary — showing template brief in the meantime
+                      </div>
+                    )}
+                    {geminiError && (
+                      <div className="mb-4 flex items-center gap-2 text-xs text-amber-400/70 bg-amber-900/10 border border-amber-900/30 rounded-xl px-3 py-2">
+                        <AlertTriangle size={11} className="shrink-0" />
+                        {geminiError}
+                      </div>
+                    )}
+                    <div className="space-y-4 text-sm">
+                      <div>
+                        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">Executive Summary</p>
+                        <p className="text-slate-300 leading-relaxed">{brief.executive_summary}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1">Fiscal Impact</p>
+                        <p className="text-slate-300 leading-relaxed">{brief.fiscal_impact}</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2">Major Risks</p>
+                          <ul className="space-y-1">
+                            {brief.major_risks.map((r: string, i: number) => (
+                              <li key={i} className="text-slate-400 text-xs flex gap-2">
+                                <AlertTriangle size={11} className="text-amber-500 shrink-0 mt-0.5" />
+                                {r}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">Questions for Policymakers</p>
+                          <ul className="space-y-1">
+                            {brief.questions_for_policymakers.map((q: string, i: number) => (
+                              <li key={i} className="text-slate-400 text-xs flex gap-2">
+                                <span className="text-emerald-500 font-bold shrink-0">→</span>
+                                {q}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">Questions for Policymakers</p>
-                      <ul className="space-y-1">
-                        {brief.questions_for_policymakers.map((q: string, i: number) => (
-                          <li key={i} className="text-slate-400 text-xs flex gap-2">
-                            <span className="text-emerald-500 font-bold shrink-0">→</span>
-                            {q}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                   </div>
-                </div>
-              </div>
+                )}
+              </motion.div>
             )}
 
             {/* ── Model Transparency ──────────────────────────────────────── */}
