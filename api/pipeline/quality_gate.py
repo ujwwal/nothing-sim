@@ -241,8 +241,29 @@ def check_cohort_size(
             message=f"Column '{population_col}' not found; cohort size check skipped.",
         )
 
-    below = df[df[population_col].fillna(0) < min_size]
+    # Rows with NaN population are "no data" — flag separately from genuine sub-threshold
+    nan_rows     = df[df[population_col].isna()]
+    present_rows = df[df[population_col].notna()]
+    below        = present_rows[present_rows[population_col] < min_size]
+
     passed = len(below) == 0
+    details: dict[str, Any] = {
+        "n_below_threshold": len(below),
+        "n_no_data":         len(nan_rows),
+        "threshold":         min_size,
+    }
+    if len(nan_rows) > 0 and passed:
+        # Some CoCs have no population data at all — warn but don't block
+        return QualityCheckResult(
+            check_name="cohort_size",
+            passed=True,
+            severity="warning",
+            message=(
+                f"All cohorts with data meet minimum size ({min_size}), but "
+                f"{len(nan_rows)} CoC(s) have no {population_col} data (no data ≠ zero)."
+            ),
+            details=details,
+        )
     return QualityCheckResult(
         check_name="cohort_size",
         passed=passed,
@@ -252,7 +273,7 @@ def check_cohort_size(
             if passed
             else f"{len(below)} cohorts have fewer than {min_size} individuals."
         ),
-        details={"n_below_threshold": len(below), "threshold": min_size},
+        details=details,
     )
 
 
