@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Aegis Simulation - Linux & macOS Launcher
+# QuietCost - Linux & macOS Launcher
 # This script starts both the FastAPI backend and Next.js frontend, managing dependencies and cleanup.
 
 # Exit on script error (non-background processes)
@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${CYAN}=======================================================================${NC}"
-echo -e "${PURPLE}              Aegis Simulation - Linux & macOS Launcher                ${NC}"
+echo -e "${PURPLE}              QuietCost - Linux & macOS Launcher                ${NC}"
 echo -e "${CYAN}=======================================================================${NC}"
 echo ""
 
@@ -122,7 +122,7 @@ FRONTEND_PID=$!
 # Function to stop background processes when this script exits
 cleanup() {
     echo ""
-    echo -e "${YELLOW}Stopping Aegis servers...${NC}"
+    echo -e "${YELLOW}Stopping QuietCost servers...${NC}"
     
     # Try SIGINT first for clean exit
     kill -2 $BACKEND_PID 2>/dev/null

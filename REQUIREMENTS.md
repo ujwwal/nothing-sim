@@ -1,6 +1,6 @@
 # Project Requirements
 
-This document outlines all dependencies and setup instructions for running the `nothing-sim-pvt` project (AEGIS Simulation Platform).
+This document outlines all dependencies and setup instructions for running the `nothing-sim-pvt` project (QuietCost Platform).
 
 ## System Requirements
 

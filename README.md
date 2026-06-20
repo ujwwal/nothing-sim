@@ -1,4 +1,4 @@
-# Aegis-Sim — The Cost of Doing Nothing
+# QuietCost — The Cost of Doing Nothing
 
 > **USAII Global AI Hackathon 2026 · Challenge 6: AI for Systems & Society**  
 > Direction A: The Cost of Doing Nothing Simulator
@@ -10,9 +10,9 @@
 
 ---
 
-## What Is Aegis-Sim?
+## What Is QuietCost?
 
-**Aegis-Sim** is a transparent, auditable fiscal simulation platform that helps municipal decision-makers understand the **long-term financial consequences of delaying supportive housing interventions** for people experiencing chronic homelessness.
+**QuietCost** is a transparent, auditable fiscal simulation platform that helps municipal decision-makers understand the **long-term financial consequences of delaying supportive housing interventions** for people experiencing chronic homelessness.
 
 The core question it answers:
 
@@ -108,7 +108,7 @@ The platform is a full-stack Next.js + FastAPI web application with a dark glass
 
 ### Invisible Population Multipliers
 
-PIT Counts systematically undercount unsheltered individuals (Culhane et al., 2020). Aegis-Sim surfaces three estimates:
+PIT Counts systematically undercount unsheltered individuals (Culhane et al., 2020). QuietCost surfaces three estimates:
 
 | Estimate | Multiplier |
 |---------|-----------|
@@ -291,7 +291,7 @@ nothing-sim-pvt/
 
 ## Responsible AI Design
 
-Aegis-Sim is built with the following safety constraints **hard-coded**:
+QuietCost is built with the following safety constraints **hard-coded**:
 
 - ✅ **No individual decisions** — the model operates at population level only
 - ✅ **No single-point forecasts** — every output is a probability range
@@ -365,4 +365,4 @@ This project is **private** and was created for the USAII Global AI Hackathon 20
 
 ---
 
-*Aegis-Sim does not make policy decisions. It does not determine individual eligibility. It does not automate policy. Humans remain responsible for all final decisions.*
+*QuietCost does not make policy decisions. It does not determine individual eligibility. It does not automate policy. Humans remain responsible for all final decisions.*

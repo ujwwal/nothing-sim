@@ -11,7 +11,7 @@ export default function MethodologyPage() {
       >
         <h1 className="text-4xl font-semibold mb-4">Methodology</h1>
         <p className="text-xl text-slate-400 font-light">
-          Aegis-Sim utilizes a Discrete-Time Markov State Transition Model layered with Monte Carlo simulations to project long-term fiscal outcomes.
+          QuietCost utilizes a Discrete-Time Markov State Transition Model layered with Monte Carlo simulations to project long-term fiscal outcomes.
         </p>
       </motion.header>
 

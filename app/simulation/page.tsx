@@ -61,7 +61,7 @@ function generateBrief(
     `a ${delayYears}-year delay before initiating PSH intervention`;
 
   return {
-    executive_summary: `Under a ${scenarioLabel} scenario, the Aegis-Sim model projects cumulative 10-year system costs ranging from approximately $${totalCostLowM}M to $${totalCostHighM}M. The modelled chronic homeless population ${Number(growthPct) > 0 ? `grows by approximately ${growthPct}%` : `stabilises`} over the decade. These are probability ranges — not forecasts — derived from 1,000 Monte Carlo simulation runs of a six-state Markov transition model.`,
+    executive_summary: `Under a ${scenarioLabel} scenario, the QuietCost model projects cumulative 10-year system costs ranging from approximately $${totalCostLowM}M to $${totalCostHighM}M. The modelled chronic homeless population ${Number(growthPct) > 0 ? `grows by approximately ${growthPct}%` : `stabilises`} over the decade. These are probability ranges — not forecasts — derived from 1,000 Monte Carlo simulation runs of a six-state Markov transition model.`,
 
     fiscal_impact: `The Net Present Cost of Delay (NP-CoD) — the additional cumulative taxpayer burden attributable specifically to the intervention delay — is estimated in the range of $${(npCodLow / 1e6).toFixed(1)}M to $${(npCodHigh / 1e6).toFixed(1)}M. This cost is driven primarily by increased ER utilisation and jail cycling as individuals remain in high-cost states longer. Permanent Supportive Housing, while representing an upfront investment, consistently reduces downstream costs across all modelled scenarios in the literature.`,
 
@@ -112,7 +112,7 @@ async function callGeminiAPI(
 
   const prompt = `You are a senior policy analyst writing a plain-language briefing note for a city council member or county supervisor who is NOT a data scientist. They need to understand the fiscal and human consequences of homelessness intervention choices.
 
-Here are the results from an Aegis-Sim Markov simulation:
+Here are the results from an QuietCost Markov simulation:
 - Scenario: ${scenarioLabel}
 - Invisible population estimate: ${invisiblePop} (accounts for PIT count undercounting)
 - Starting chronic homeless population: ${initPop.toLocaleString()}
@@ -523,7 +523,7 @@ export default function SimulationPage() {
                     >
                       <RenderMarkdown text={geminiText} />
                       <p className="mt-4 pt-3 border-t border-slate-800/60 text-[10px] text-slate-600">
-                        ⚠ AI-generated summary based solely on this model's outputs. Not a substitute for professional policy analysis. All numbers are from the Aegis-Sim model.
+                        ⚠ AI-generated summary based solely on this model's outputs. Not a substitute for professional policy analysis. All numbers are from the QuietCost model.
                       </p>
                     </motion.div>
                   )}

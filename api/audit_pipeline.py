@@ -1,5 +1,5 @@
 """
-audit_pipeline.py -- Deep value audit of the Aegis-Sim data pipeline.
+audit_pipeline.py -- Deep value audit of the QuietCost data pipeline.
 
 Checks:
   1. Raw loaded values vs. known public HUD figures

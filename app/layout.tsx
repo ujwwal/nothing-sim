@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 const inter = Inter({ subsets: ["latin"], weight: ["300","400","500","600","700"] });
 
 export const metadata: Metadata = {
-  title: "Aegis-Sim | The Cost of Doing Nothing",
+  title: "QuietCost | The Cost of Doing Nothing",
   description: "Understand the long-term fiscal consequences of delaying supportive housing interventions for people experiencing chronic homelessness.",
 };
 

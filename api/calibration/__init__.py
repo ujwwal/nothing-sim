@@ -1,1 +1,1 @@
-# Aegis-Sim transition calibration package.
+# QuietCost transition calibration package.

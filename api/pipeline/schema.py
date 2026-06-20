@@ -1,5 +1,5 @@
 """
-schema.py — Unified schema contract for the Aegis-Sim data pipeline.
+schema.py — Unified schema contract for the QuietCost data pipeline.
 
 PURPOSE:
   Defines the canonical column names, types, and validation rules that every

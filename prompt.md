@@ -1,8 +1,8 @@
-# AEGIS-SIM — FULL BUILD SPECIFICATION FOR GITHUB COPILOT
+# QUIETCOST — FULL BUILD SPECIFICATION FOR GITHUB COPILOT
 
-Build a production-quality MVP called **Aegis-Sim**.
+Build a production-quality MVP called **QuietCost**.
 
-Aegis-Sim is an AI-assisted policy simulation platform that helps municipal decision-makers understand the long-term fiscal consequences of delaying supportive housing interventions for people experiencing chronic homelessness.
+QuietCost is an AI-assisted policy simulation platform that helps municipal decision-makers understand the long-term fiscal consequences of delaying supportive housing interventions for people experiencing chronic homelessness.
 
 The platform DOES NOT make decisions for policymakers.
 
@@ -254,7 +254,7 @@ Buttons:
 Sections:
 
 - Problem Overview
-- How Aegis-Sim Works
+- How QuietCost Works
 - Data Sources
 - Responsible AI
 - System Architecture

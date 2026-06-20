@@ -1,9 +1,9 @@
-# Aegis-Sim Dataset Registry
+# QuietCost Dataset Registry
 
 ## Project Rules
 
 1. Scope is limited to chronic homelessness only.
-2. Aegis-Sim is a county-level planning and decision-support tool.
+2. QuietCost is a county-level planning and decision-support tool.
 3. The platform assists policymakers but never makes decisions for them.
 4. Human-in-the-loop review is required for all policy decisions.
 5. The simulation engine uses a Discrete-Time Markov State Transition Model.
@@ -24,11 +24,11 @@
 
 ## Application Name
 
-Aegis-Sim
+QuietCost
 
 ## Full Name
 
-Aegis-Sim: Cost of Inaction Simulator for Chronic Homelessness
+QuietCost: Cost of Inaction Simulator for Chronic Homelessness
 
 ## Challenge
 
@@ -702,7 +702,7 @@ Examples:
 
 # Final Principle
 
-Aegis-Sim is a transparent decision-support platform.
+QuietCost is a transparent decision-support platform.
 
 It exists to help policymakers understand possible consequences of action and inaction.
 

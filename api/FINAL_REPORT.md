@@ -1,4 +1,4 @@
-# Aegis-Sim - Scaffolding Report (Updated)
+# QuietCost - Scaffolding Report (Updated)
 
 ## Work Completed
 1. **Frontend Architecture**: 

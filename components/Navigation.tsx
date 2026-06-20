@@ -50,7 +50,7 @@ export default function Navigation() {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <p className="text-white font-semibold text-sm leading-none">Aegis-Sim</p>
+              <p className="text-white font-semibold text-sm leading-none">QuietCost</p>
               <p className="text-slate-500 text-[10px] mt-0.5">Policy Simulation</p>
             </motion.div>
           )}

@@ -94,7 +94,7 @@ export default function LandingPage() {
           {...fadeUp(0.25)}
           className="text-lg md:text-xl text-slate-400 font-light max-w-2xl leading-relaxed mb-12"
         >
-          Aegis-Sim helps municipal decision-makers understand the long-term fiscal consequences
+          QuietCost helps municipal decision-makers understand the long-term fiscal consequences
           of delaying supportive housing interventions for people experiencing chronic homelessness.
         </motion.p>
 
@@ -215,7 +215,7 @@ export default function LandingPage() {
       {/* ── Features grid ───────────────────────────────────────────────── */}
       <section>
         <motion.div {...fadeUp(0.1)} className="text-center mb-10">
-          <h2 className="text-3xl font-semibold text-white/90 mb-3">How Aegis-Sim Works</h2>
+          <h2 className="text-3xl font-semibold text-white/90 mb-3">How QuietCost Works</h2>
           <p className="text-slate-400 max-w-xl mx-auto text-sm">
             A transparent, auditable simulation stack built on peer-reviewed methods — not a black box.
           </p>
@@ -268,7 +268,7 @@ export default function LandingPage() {
             <div className="flex-1">
               <h3 className="font-semibold text-white mb-1">Responsible AI by Design</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Aegis-Sim does <strong className="text-slate-200">not</strong> make policy decisions or determine individual eligibility.
+                QuietCost does <strong className="text-slate-200">not</strong> make policy decisions or determine individual eligibility.
                 All projections include uncertainty ranges. The simulator disables itself when data is older than 18 months,
                 missingness exceeds 25%, or population falls below 100. Humans remain responsible for all final decisions.
               </p>

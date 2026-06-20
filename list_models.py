@@ -33,7 +33,7 @@ def main():
     try:
         req = urllib.request.Request(
             url, 
-            headers={'User-Agent': 'Mozilla/5.0 (Aegis-Sim Model Check)'}
+            headers={'User-Agent': 'Mozilla/5.0 (QuietCost Model Check)'}
         )
         with urllib.request.urlopen(req) as response:
             res_data = json.loads(response.read().decode('utf-8'))

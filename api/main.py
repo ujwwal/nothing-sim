@@ -1,5 +1,5 @@
 """
-main.py — FastAPI backend for Aegis-Sim.
+main.py — FastAPI backend for QuietCost.
 
 ARCHITECTURE:
   On startup, the full data pipeline is built once and cached in app.state:
@@ -163,7 +163,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Aegis-Sim API",
+    title="QuietCost API",
     description="Calibrated Markov simulation & data API for homelessness policy analysis.",
     lifespan=lifespan,
 )
@@ -183,7 +183,7 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"message": "Aegis-Sim API is running"}
+    return {"message": "QuietCost API is running"}
 
 
 @app.get("/api/data-health")

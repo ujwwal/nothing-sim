@@ -1,10 +1,10 @@
 @echo off
 setlocal EnableDelayedExpansion
-title Aegis Simulation Launcher
+title QuietCost Launcher
 cls
 
 echo =======================================================================
-echo               Aegis Simulation - Windows Launcher
+echo               QuietCost - Windows Launcher
 echo =======================================================================
 echo.
 
@@ -93,10 +93,10 @@ echo.
 
 :: ── Launch servers ────────────────────────────────────────────────────────
 echo Launching Backend API Server on port 8000...
-start "Aegis - Backend" cmd /k ""%UVICORN%" main:app --reload --port 8000 --app-dir "%API_DIR%""
+start "QuietCost - Backend" cmd /k ""%UVICORN%" main:app --reload --port 8000 --app-dir "%API_DIR%""
 
 echo Launching Frontend on port 3000...
-start "Aegis - Frontend" cmd /k "cd /d "%ROOT%" && npm run dev"
+start "QuietCost - Frontend" cmd /k "cd /d "%ROOT%" && npm run dev"
 
 echo.
 echo =======================================================================
