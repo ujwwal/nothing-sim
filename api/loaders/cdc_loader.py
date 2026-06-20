@@ -33,6 +33,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from loaders.hf_hub import resolve_dataset_file
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -70,15 +72,8 @@ class CDCLoader:
     """
 
     def __init__(self, datasets_dir: str | Path | None = None) -> None:
-        if datasets_dir is None:
-            datasets_dir = Path(__file__).parent.parent.parent / "datasets"
-        self.datasets_dir = Path(datasets_dir)
-        self.cdc_path = self.datasets_dir / CDC_FILE
-
-        if not self.cdc_path.exists():
-            raise FileNotFoundError(
-                f"CDC WONDER file not found at {self.cdc_path}."
-            )
+        # datasets_dir kept for backward-compat; ignored when HF resolver is used
+        self.cdc_path = resolve_dataset_file(CDC_FILE)
 
     # ------------------------------------------------------------------
     # Public API

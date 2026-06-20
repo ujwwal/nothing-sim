@@ -36,6 +36,8 @@ from typing import Any
 
 import pandas as pd
 
+from loaders.hf_hub import resolve_dataset_file
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -100,16 +102,8 @@ class PITLoader:
     """
 
     def __init__(self, datasets_dir: str | Path | None = None) -> None:
-        if datasets_dir is None:
-            datasets_dir = Path(__file__).parent.parent.parent / "datasets"
-        self.datasets_dir = Path(datasets_dir)
-        self.pit_path = self.datasets_dir / PIT_COC_FILE
-
-        if not self.pit_path.exists():
-            raise FileNotFoundError(
-                f"PIT CoC workbook not found at {self.pit_path}. "
-                "Ensure datasets/hud pit count_/2007-2024-PIT-Counts-by-CoC.xlsb is present."
-            )
+        # datasets_dir kept for backward-compat; ignored when HF resolver is used
+        self.pit_path = resolve_dataset_file(PIT_COC_FILE)
 
     # ------------------------------------------------------------------
     # Public API

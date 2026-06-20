@@ -30,6 +30,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from loaders.hf_hub import resolve_dataset_file
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -78,15 +80,8 @@ class VeraLoader:
     """
 
     def __init__(self, datasets_dir: str | Path | None = None) -> None:
-        if datasets_dir is None:
-            datasets_dir = Path(__file__).parent.parent.parent / "datasets"
-        self.datasets_dir = Path(datasets_dir)
-        self.vera_path = self.datasets_dir / VERA_COUNTY_FILE
-
-        if not self.vera_path.exists():
-            raise FileNotFoundError(
-                f"Vera county CSV not found at {self.vera_path}."
-            )
+        # datasets_dir kept for backward-compat; ignored when HF resolver is used
+        self.vera_path = resolve_dataset_file(VERA_COUNTY_FILE)
 
     # ------------------------------------------------------------------
     # Public API

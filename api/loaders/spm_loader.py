@@ -44,6 +44,8 @@ from typing import Any
 
 import pandas as pd
 
+from loaders.hf_hub import resolve_dataset_file
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -208,16 +210,8 @@ class SPMLoader:
     """
 
     def __init__(self, datasets_dir: str | Path | None = None) -> None:
-        if datasets_dir is None:
-            datasets_dir = Path(__file__).parent.parent.parent / "datasets"
-        self.datasets_dir = Path(datasets_dir)
-        self.spm_path = self.datasets_dir / SPM_FILE_NAME
-
-        if not self.spm_path.exists():
-            raise FileNotFoundError(
-                f"SPM workbook not found at {self.spm_path}. "
-                "Ensure datasets/System-Performance-Measures-Data.xlsx is present."
-            )
+        # datasets_dir kept for backward-compat; ignored when HF resolver is used
+        self.spm_path = resolve_dataset_file(SPM_FILE_NAME)
 
     # ------------------------------------------------------------------
     # Public API

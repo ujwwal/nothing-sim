@@ -1,0 +1,15 @@
+# Large dataset files — served from Hugging Face Hub, not Vercel
+datasets/
+datasets.zip
+
+# Python API — deployed separately on Railway
+api/
+
+# Python env
+*.pyc
+__pycache__/
+.venv/
+
+# Local dev
+.env
+.env.local
