@@ -1,7 +1,15 @@
 "use client";
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { AlertTriangle, Clock } from 'lucide-react';
+
+interface ModelMetadata {
+  last_updated: string;
+  total_feedback: number;
+  threshold_met: boolean;
+  threshold: number;
+}
 
 const dummyData = [
   { year: '2024', base: 450, delayed: 450 },
@@ -19,11 +27,12 @@ export default function Dashboard() {
         <p className="text-slate-400">Baseline indicators and high-level fiscal impact estimates.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 w-full">
         <KPICard title="Estimated Sheltered" value="1,240" trend="+2.4%" />
         <KPICard title="Estimated Unsheltered" value="450" trend="+5.1%" />
         <KPICard title="Annual System Cost (Status Quo)" value="$14.2M" />
         <KPICard title="Net Present Cost of Delay" value="$8.5M" highlight />
+        <ModelHealthCard />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full h-[400px]">
@@ -64,6 +73,59 @@ function KPICard({ title, value, trend, highlight }: { title: string, value: str
       <div className="flex items-end justify-between">
         <span className={`text-3xl font-bold tracking-tight ${highlight ? 'text-blue-400' : ''}`}>{value}</span>
         {trend && <span className="text-sm font-medium text-emerald-400">{trend}</span>}
+      </div>
+    </motion.div>
+  );
+}
+
+function ModelHealthCard() {
+  const [metadata, setMetadata] = useState<ModelMetadata | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/model-metadata')
+      .then((res) => res.json())
+      .then((data) => {
+        setMetadata(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const formattedDate = metadata?.last_updated
+    ? new Date(metadata.last_updated).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : 'N/A';
+
+  return (
+    <motion.div
+      whileHover={{ y: -2 }}
+      className={`glass-card p-6 rounded-3xl flex flex-col justify-between ${metadata?.threshold_met ? 'ring-1 ring-yellow-500/50 bg-yellow-500/5' : ''}`}
+    >
+      <h3 className="text-sm text-slate-400 font-medium mb-2 flex items-center gap-2">
+        <Clock size={14} />
+        Model Health
+      </h3>
+      <div className="space-y-2">
+        <p className="text-xs text-slate-500">
+          Last Updated: <span className="text-slate-300">{loading ? '...' : formattedDate}</span>
+        </p>
+        {metadata?.threshold_met && (
+          <div className="flex items-start gap-2 mt-2">
+            <AlertTriangle size={14} className="text-yellow-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-yellow-400/90 leading-relaxed">
+              Sufficient feedback collected ({metadata.total_feedback} flagged runs) — consider retraining transition probabilities
+            </p>
+          </div>
+        )}
+        <p className="text-[10px] text-slate-600 mt-1">
+          Recalibration triggers: &gt;{metadata?.threshold ?? 20} flagged runs OR data staleness &gt;18 months
+        </p>
       </div>
     </motion.div>
   );

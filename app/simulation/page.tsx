@@ -7,7 +7,8 @@ import {
 } from 'recharts';
 import {
   Play, Activity, AlertTriangle, CheckCircle, TrendingUp,
-  Brain, Database, ChevronDown, ChevronUp, Info, Layers, GitBranch, BarChart2, Sparkles, Loader2
+  Brain, Database, ChevronDown, ChevronUp, Info, Layers, GitBranch, BarChart2, Sparkles, Loader2,
+  ShieldCheck, Star
 } from 'lucide-react';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -222,7 +223,52 @@ export default function SimulationPage() {
   const [showModel, setShowModel]       = useState(false);
   const [showPreproc, setShowPreproc]   = useState(false);
   const [showAssumptions, setShowAssumptions] = useState(false);
+
+  // Model Validation + Feedback state
+  const [validationData, setValidationData] = useState<any>(null);
+  const [showValidation, setShowValidation] = useState(false);
+  const [showFeedbackPanel, setShowFeedbackPanel] = useState(false);
+  const [feedbackParamsRating, setFeedbackParamsRating] = useState<'yes' | 'no' | null>(null);
+  const [feedbackPlausibleRating, setFeedbackPlausibleRating] = useState<number | null>(null);
+  const [feedbackNotes, setFeedbackNotes] = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+
   const hasGeminiKey = !!process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+  // Fetch validation results on mount
+  useState(() => {
+    fetch('/api/validation')
+      .then(res => res.json())
+      .then(data => setValidationData(data))
+      .catch(() => setValidationData(null));
+  });
+
+  const submitFeedback = async () => {
+    if (feedbackParamsRating === null) return;
+    setFeedbackSubmitting(true);
+    setFeedbackError(null);
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          simulation_request: { scenario, delay_years: delayYears, invisible_population_estimate: invisiblePop, coc_number: cocNumber },
+          rating_params: feedbackParamsRating === 'yes' ? 4 : 2,
+          rating_plausible: feedbackPlausibleRating ?? 3,
+          notes: feedbackNotes,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to submit feedback');
+      setFeedbackSubmitted(true);
+      setTimeout(() => setFeedbackSubmitted(false), 5000);
+    } catch (e: any) {
+      setFeedbackError(e.message);
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
 
   const runSimulation = async () => {
     setIsRunning(true);
@@ -485,6 +531,22 @@ export default function SimulationPage() {
               </div>
             </div>
 
+            {/* ── CoC Preset Callout ─────────────────────────────────────── */}
+            {cocNumber !== 'national' && cocName && results && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                className="glass-card rounded-2xl p-4 border border-emerald-500/30 bg-emerald-500/5"
+              >
+                <div className="flex items-start gap-3">
+                  <CheckCircle size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-sm text-slate-300 leading-relaxed">
+                    <p className="font-medium text-emerald-300 mb-1">For {cocName} — delaying PSH investment by {delayYears} year{delayYears !== 1 ? 's' : ''} is projected to cost taxpayers an additional {fmtM(npCodLow)} to {fmtM(npCodHigh)} over 10 years.</p>
+                    <p className="text-xs text-slate-500">Based on real HUD PIT population and calibrated transition probabilities for this CoC.</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* ── Chart ──────────────────────────────────────────────────── */}
             <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
@@ -630,6 +692,72 @@ export default function SimulationPage() {
               </motion.div>
             )}
 
+            {/* ── Model Validation ──────────────────────────────────────── */}
+            <div className="mb-6">
+              <button onClick={() => setShowValidation(!showValidation)}
+                className="flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+              >
+                <ShieldCheck size={16} className="text-amber-400" />
+                Model Validation
+                {showValidation ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              <AnimatePresence>
+                {showValidation && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-2"
+                  >
+                    <div className="glass-card rounded-2xl p-4 border border-slate-700/30">
+                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                        Held-out Year Validation
+                      </h4>
+                      {validationData ? (
+                        <>
+                          <p className="text-xs text-slate-500 mb-3">
+                            Calibrated on {validationData?.calibration_years?.join(', ')} &bull; Held-out: {validationData?.held_out_year}
+                          </p>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs text-left">
+                              <thead>
+                                <tr className="text-slate-400 border-b border-slate-700">
+                                  <th className="py-2 pr-4 font-medium">State</th>
+                                  <th className="py-2 pr-4 font-medium text-right">Predicted</th>
+                                  <th className="py-2 pr-4 font-medium text-right">Actual</th>
+                                  <th className="py-2 pr-4 font-medium text-right">Error</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(validationData?.state_predictions || {}).map(([state, vals]: [string, any]) => (
+                                  <tr key={state} className="border-b border-slate-700/40">
+                                    <td className="py-2 pr-4 text-slate-300 capitalize">{state.replace(/_/g, ' ')}</td>
+                                    <td className="py-2 pr-4 text-right text-slate-300">{vals.predicted?.toLocaleString()}</td>
+                                    <td className="py-2 pr-4 text-right text-slate-300">{vals.actual?.toLocaleString()}</td>
+                                    <td className="py-2 pr-4 text-right text-red-400">{((vals.predicted ?? 0) - (vals.actual ?? 0)).toLocaleString()}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                            {['mae_total_homeless', 'rmse_total_homeless', 'mae_sheltered', 'rmse_sheltered', 'mae_unsheltered', 'rmse_unsheltered'].map((key) => (
+                              <div key={key} className="glass-card rounded-xl p-2 border border-slate-700/40">
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">{key.replace(/_/g, ' ')}</p>
+                                <p className="text-sm font-semibold text-cyan-400">{Number(validationData[key as keyof typeof validationData]).toLocaleString()}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm text-slate-400">Loading validation results...</p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* ── Model Transparency ──────────────────────────────────────── */}
             <div className="glass-card rounded-2xl border border-slate-700/30 overflow-hidden">
               {/* Model Used */}
@@ -722,6 +850,99 @@ export default function SimulationPage() {
                 </div>
               )}
             </div>
+
+            {/* ── Feedback Panel ──────────────────────────────────────── */}
+            <button onClick={() => setShowFeedbackPanel(!showFeedbackPanel)}
+              className="flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors mt-6"
+            >
+              <Star size={16} className="text-yellow-400" />
+              Provide Feedback
+              {showFeedbackPanel ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+            <AnimatePresence>
+              {showFeedbackPanel && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-2"
+                >
+                  <div className="glass-card rounded-2xl p-5 border border-slate-700/30">
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                      Help improve the model
+                    </h4>
+                    {feedbackSubmitted ? (
+                      <div className="flex items-center gap-2 text-emerald-400">
+                        <CheckCircle size={16} />
+                        <p className="text-sm">Thank you for your feedback!</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Plausibility rating */}
+                        <div>
+                          <p className="text-sm text-slate-300 mb-2">How plausible does the output range seem?</p>
+                          <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                onClick={() => setFeedbackPlausibleRating(star)}
+                                className={`p-1 rounded transition-colors ${feedbackPlausibleRating >= star ? 'text-yellow-400' : 'text-slate-600 hover:text-slate-400'}`}
+                              >
+                                <Star size={20} fill={feedbackPlausibleRating >= star ? 'currentColor' : 'none'} />
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {feedbackPlausibleRating > 0 ? ['Very Low', 'Low', 'Moderate', 'High', 'Very High'][feedbackPlausibleRating - 1] : 'Select a rating'}
+                          </p>
+                        </div>
+                        {/* Params reflection */}
+                        <div>
+                          <p className="text-sm text-slate-300 mb-2">Did the scenario parameters reflect the real situation in this CoC?</p>
+                          <div className="flex gap-3">
+                            {['Yes', 'No'].map((val) => (
+                              <button
+                                key={val}
+                                onClick={() => setFeedbackParamsRating(val === 'Yes' ? 1 : 0)}
+                                className={`px-4 py-2 text-xs font-medium rounded-xl border transition-colors ${
+                                  (val === 'Yes' && feedbackParamsRating === 1) || (val === 'No' && feedbackParamsRating === 0)
+                                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                    : 'border-slate-700/40 text-slate-400 hover:text-slate-200'
+                                }`}
+                              >
+                                {val === 'Yes' ? '👍 Yes' : '👎 No'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Notes */}
+                        <div>
+                          <p className="text-sm text-slate-300 mb-2">Additional notes (optional)</p>
+                          <textarea
+                            value={feedbackNotes}
+                            onChange={(e) => setFeedbackNotes(e.target.value)}
+                            placeholder="Share any concerns or suggestions..."
+                            className="w-full bg-slate-900/60 border border-slate-700/40 rounded-xl p-3 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/40 transition-colors resize-none"
+                            rows={3}
+                          />
+                        </div>
+                        {feedbackError && (
+                          <p className="text-xs text-red-400">{feedbackError}</p>
+                        )}
+                        <button
+                          onClick={submitFeedback}
+                          disabled={feedbackSubmitting}
+                          className="px-5 py-2 bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {feedbackSubmitting ? <Loader2 size={14} className="animate-spin" /> : null}
+                          {feedbackSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
           </motion.div>
         )}
