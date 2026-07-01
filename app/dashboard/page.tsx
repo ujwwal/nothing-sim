@@ -56,7 +56,7 @@ export default function Dashboard() {
 
 function KPICard({ title, value, trend, highlight }: { title: string, value: string, trend?: string, highlight?: boolean }) {
   return (
-    <motion.div 
+    <motion.div
       whileHover={{ y: -2 }}
       className={`glass-card p-6 rounded-3xl flex flex-col justify-between ${highlight ? 'ring-1 ring-blue-500/50 bg-blue-500/10' : ''}`}
     >

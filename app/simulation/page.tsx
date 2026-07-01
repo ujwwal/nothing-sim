@@ -35,6 +35,14 @@ const ASSUMPTIONS = [
   { assumption: 'Discount rate', value: 'Not applied (nominal costs)', why: 'Avoided to maintain transparency for non-economist policymakers.' },
 ];
 
+// ── CoC Presets ────────────────────────────────────────────────────────
+const COC_PRESETS = [
+  { value: 'national', label: 'National (Default)', cocName: 'United States National', delayYears: 3, invisiblePop: 'medium' },
+  { value: 'CA-600', label: 'Los Angeles CoC (CA-600)', cocName: 'Los Angeles Continuum of Care', delayYears: 5, invisiblePop: 'medium' },
+  { value: 'NY-600', label: 'New York City CoC (NY-600)', cocName: 'New York City Continuum of Care', delayYears: 5, invisiblePop: 'medium' },
+  { value: 'TX-700', label: 'Houston/Harris County CoC (TX-700)', cocName: 'Houston/Harris County Continuum of Care', delayYears: 5, invisiblePop: 'medium' },
+];
+
 const PREPROCESSING_STEPS = [
   { step: 'HUD PIT Count', operation: 'Load XLSB → filter chronic homelessness rows → aggregate to national totals', assumed: 'Years 2020–2021 linearly interpolated due to COVID data gaps.' },
   { step: 'System Performance Measures', operation: 'Parse XLSX → extract "exits to permanent housing" and "returns to homelessness" rates', assumed: 'Missing CoC-level data imputed with national average transition rates.' },
@@ -43,6 +51,15 @@ const PREPROCESSING_STEPS = [
   { step: 'HUD Fair Market Rents', operation: 'XLSX → extract median 1-BR FMR as PSH cost proxy', assumed: 'PSH operating cost estimated at 1.5× FMR to include services overhead.' },
   { step: 'CoC Award/HIC', operation: 'PDF → CSV extraction → national PSH unit totals', assumed: 'Extracted table data validated against published HUD summary figures.' },
 ];
+
+// ── Helper Functions ────────────────────────────────────────────────────────
+function formatCurrency(value: number): string {
+  return `$${(value / 1e6).toFixed(1)}M`;
+}
+
+function formatPopulation(value: number): string {
+  return value.toLocaleString();
+}
 
 // ── AI Brief Generator (template-based, works offline) ──────────────────────
 function generateBrief(
@@ -194,7 +211,7 @@ function RenderMarkdown({ text }: { text: string }) {
 
 // ── Main component ───────────────────────────────────────────────────────────
 export default function SimulationPage() {
-  const { scenario, delayYears, setScenario, setDelayYears, results, setResults } = useSimulationStore();
+  const { scenario, delayYears, setScenario, setDelayYears, results, setResults, cocNumber, cocName, setCocNumber, setCocName } = useSimulationStore();
   const [isRunning, setIsRunning]       = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [invisiblePop, setInvisiblePop] = useState<'low' | 'medium' | 'high'>('medium');
@@ -218,7 +235,7 @@ export default function SimulationPage() {
       const res = await fetch('/api/simulation/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario, delay_years: delayYearsToSend, invisible_population_estimate: invisiblePop }),
+        body: JSON.stringify({ scenario, delay_years: delayYearsToSend, invisible_population_estimate: invisiblePop, coc_number: cocNumber }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Simulation failed');
@@ -287,6 +304,36 @@ export default function SimulationPage() {
           <div>
             <h2 className="text-xl font-semibold">Simulation Controls</h2>
             <p className="text-slate-400 text-xs mt-1">Configure your intervention scenario</p>
+          </div>
+
+          {/* Preset Selector */}
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">CoC Preset</label>
+            <div className="flex flex-col gap-2">
+              {COC_PRESETS.map(preset => (
+                <button key={preset.value} onClick={() => {
+                  setCocNumber(preset.value);
+                  setCocName(preset.cocName);
+                  setDelayYears(preset.delayYears);
+                  setInvisiblePop(preset.invisiblePop as 'low' | 'medium' | 'high');
+                  // If preset is national, we might want to set scenario to 'delay' (default) but keep user's choice?
+                  // We'll leave scenario as is, but note that the preset is for a delay scenario.
+                  // Optionally, we could set scenario to 'delay' for non-national presets.
+                  if (preset.value !== 'national') {
+                    setScenario('delay');
+                  }
+                }}
+                  className={`text-left p-3 rounded-xl border transition-all text-sm ${
+                    cocNumber === preset.value
+                      ? 'border-blue-500 bg-blue-500/10 text-white'
+                      : 'border-slate-700/60 text-slate-400 hover:bg-slate-800/50'
+                }`}
+                >
+                  <span className="font-medium block">{preset.label}</span>
+                  <span className="text-xs text-slate-500">{preset.cocName}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Scenario */}

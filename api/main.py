@@ -37,6 +37,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data_pipeline import MockDataPipeline
 from simulation import MarkovSimulation
+from backtesting import HoldOutValidator
+from feedback import get_model_metadata as _get_model_metadata, get_feedback_volume, record_feedback
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -109,6 +111,15 @@ def _build_pipeline_cache() -> Dict[str, Any]:
             len(cal_by_coc), len(pop_by_coc), national_pop, most_recent_year,
         )
 
+        # Run hold-out validation on the most recent year
+        try:
+            from backtesting import HoldOutValidator
+            validator = HoldOutValidator(df_pipeline, held_out_year=most_recent_year)
+            validation_results = validator.run_validation()
+        except Exception as exc:
+            logger.warning("Hold-out validation failed: %s", exc, exc_info=True)
+            validation_results = {"error": str(exc)}
+
         return {
             "cal_by_coc":      cal_by_coc,
             "pop_by_coc":      pop_by_coc,
@@ -116,6 +127,7 @@ def _build_pipeline_cache() -> Dict[str, Any]:
             "national_pop":    national_pop,
             "data_source":     "calibrated",
             "calibration_year": most_recent_year,
+            "validation_results": validation_results,
         }
 
     except Exception as exc:
@@ -293,3 +305,51 @@ def run_simulation(req: SimulationRequest):
         "baseline_10yr_cost_median":          result_baseline["total_10yr_cost_median"],
         "calibrated_params":                  cal_params,
     }
+
+
+# ---------------------------------------------------------------------------
+# Validation endpoint (GAP 1)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/validation")
+def get_validation_results():
+    """Return cached hold-out validation results."""
+    cache: Dict[str, Any] = app.state.pipeline
+    validation = cache.get("validation_results")
+    if validation is None:
+        return {"error": "Validation results not available."}
+    return validation
+
+
+# ---------------------------------------------------------------------------
+# Feedback endpoints (GAP 3)
+# ---------------------------------------------------------------------------
+
+class FeedbackRequest(BaseModel):
+    simulation_request: dict = {}
+    rating_params: int = 3
+    rating_plausible: int = 3
+    notes: str = ""
+
+
+@app.post("/api/feedback")
+def post_feedback(req: FeedbackRequest):
+    """Record feedback from a user about a simulation run."""
+    return record_feedback(
+        simulation_request=req.simulation_request,
+        rating_params=req.rating_params,
+        rating_plausible=req.rating_plausible,
+        notes=req.notes,
+    )
+
+
+@app.get("/api/feedback/volume")
+def get_feedback_volume_endpoint():
+    """Return feedback volume info for admin monitoring."""
+    return get_feedback_volume()
+
+
+@app.get("/api/model-metadata")
+def get_model_metadata_endpoint():
+    """Return model health metadata (last updated date, feedback count)."""
+    return _get_model_metadata()
