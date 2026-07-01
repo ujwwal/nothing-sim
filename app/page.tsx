@@ -1,8 +1,8 @@
 "use client";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight, Activity, BarChart2, Database, GitBranch, Shield, TrendingDown } from 'lucide-react';
+import { ArrowRight, Activity, BarChart2, Database, GitBranch, Shield, TrendingDown, Clock } from 'lucide-react';
 
 /* ── Animation variants ─────────────────────────────────────────────────── */
 const fadeUp = (delay = 0) => ({
@@ -66,6 +66,24 @@ const STATS = [
 ];
 
 export default function LandingPage() {
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/model-metadata')
+      .then(res => res.json())
+      .then(data => {
+        if (data?.last_updated) {
+          const date = new Date(data.last_updated);
+          setLastUpdated(date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="max-w-6xl mx-auto pb-16 space-y-20">
 
@@ -202,6 +220,19 @@ export default function LandingPage() {
         >
           Sample Output · 3-Year Delay Scenario
         </div>
+
+        {/* Model Last Updated Badge */}
+        {lastUpdated && (
+          <div className="absolute -bottom-3 right-8">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-700/50 shadow-lg hover:bg-slate-800 transition-colors group cursor-pointer"
+            >
+              <Clock size={12} className="text-slate-500 group-hover:text-slate-400" />
+              <span className="text-xs text-slate-600 group-hover:text-slate-400 font-medium">Model Last Updated: {lastUpdated}</span>
+            </Link>
+          </div>
+        )}
       </motion.div>
 
       {/* ── Features grid ───────────────────────────────────────────────── */}
